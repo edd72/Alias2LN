@@ -1,0 +1,53 @@
+#!/bin/sh
+
+echo "<body background="BG.jpg"><center><FONT face="Calibri" color="#000000" size=16><b>Alias2LN</b></FONT><br><FONT face="Calibri" color="#000000" size=4>replace aliases by symlinks <br><i>© edd 2012</i><br><img src="icon.png"></center><br></FONT></body>"
+
+trt=1
+
+if [ $# -eq 0 ]; then
+  echo "<body background="BG.jpg"><FONT face="Calibri" color="#000000" size=8><center>Drop alias(es) here.</center></FONT></body>"
+trt=0
+fi
+
+
+
+while [ $# -gt 0 ]; do
+
+if [ -d "$1" -a ! -L "$1" ]; then
+	echo "<body background="BG.jpg"><FONT face="Calibri" color="#000080" size=4><hr><b>$1</b> is a directory  … <br><b> nothing to do</b></font></body>"
+	shift
+else
+	ls -l "$1" | grep "\->" >/dev/null && echo "<body background="BG.jpg"><FONT face="Calibri" color="#000080" size=4><hr><b>$1</b> is already a symlink  … <br><b> nothing to do</b></font></body>" && shift
+fi
+
+  if [ -f "$1" -a ! -L "$1" ]; then
+
+	item_name=`basename "$1"`
+	item_parent=`dirname "$1"`
+
+	item_parent="`cd \"${item_parent}\" 2>/dev/null && pwd || echo \"${item_parent}\"`"
+	item_path="${item_parent}/${item_name}"
+   	line_1='tell application "Finder"'
+    line_2='set theItem to (POSIX file "'${item_path}'") as alias'
+    line_3='if the kind of theItem is "alias" then'
+    line_4='get the posix path of (original item of theItem as text)'
+    line_5='end if'
+    line_6='end tell'
+
+    linksource=`osascript -e "$line_1" -e "$line_2" -e "$line_3" -e "$line_4" -e "$line_5" -e "$line_6"`
+    if [ $? -eq 0 ]; then
+      	if [ ! -z "$linksource" ]; then
+        	rm "$item_path"
+        	ln -s "${linksource}" "${item_path}"
+        	echo "<body background="BG.jpg"><FONT face="Calibri" color="#008000" size=4><hr><b>${item_path}</b> … <br>      -> ${linksource} … <br><b>  done</b> <br></font></body>"
+  		else
+			echo "<body background="BG.jpg"><FONT face="Calibri" color="#000080" size=4><hr><b>$1</b> is a file  … <br><b> nothing to do</b></font></body>"
+      	fi
+    fi
+    shift
+  fi
+done
+
+if [ $trt -eq 1 ]; then
+	echo "<body background="BG.jpg"><FONT face="Calibri" color="#000000" size=8><hr><center>Done.</center></FONT></body>"
+fi
